@@ -18,10 +18,13 @@ const weatherColorMap = {
   'snow': '#aae1fc'
 }
 Page({
-  data:{
+  data: {
     nowTemp: 'NoKnow',
     nowWeather: 'NoKnow',
-    nowWeatherBG:'/images/sunny-bg.png'
+    nowWeatherBG: '/images/sunny-bg.png',
+    forcast: [],
+    todayDate: '',
+    weatherSummary:''
   },
   GetWeatherNow(callback) {
     console.log("Hello World");
@@ -32,20 +35,11 @@ Page({
       },
       success: res => {
         let result = res.data.result
-        let temp = result.now.temp
-        let weather = result.now.weather
-        this.setData({
-          nowTemp: temp,
-          nowWeather: weatherMap[weather],
-          nowWeatherBG: '/images/' + weather + '-bg.png'
-        })
-        wx.setNavigationBarColor({
-          frontColor: '#000000',
-          backgroundColor: weatherColorMap[weather],
-        })
-
+        this.SetNow(result)
+        this.SetToday(result)
+        this.SetForecast(result)
       },
-      complete: ()=>{
+      complete: () => {
         callback && callback();
       }
     })
@@ -53,8 +47,53 @@ Page({
   onLoad() {
     this.GetWeatherNow();
   },
-  onPullDownRefresh()
-  {
+  onPullDownRefresh() {
     this.GetWeatherNow(wx.stopPullDownRefresh);
+  },
+  SetNow(result) {
+    let temp = result.now.temp
+    let maxTemp = result.today.maxTemp
+    let minTemp = result.today.minTemp
+    let weather = result.now.weather
+    this.setData({
+      nowTemp: temp,
+      nowWeather: weatherMap[weather],
+      nowWeatherBG: '/images/' + weather + '-bg.png',
+    });
+    wx.setNavigationBarColor({
+      frontColor: '#000000',
+      backgroundColor: weatherColorMap[weather],
+    });
+  },
+  SetToday(result)
+  {
+    let date = new Date();
+    this.setData({
+      todayDate: `今日 ${date.getFullYear()}- ${date.getMonth() + 1}- ${date.getDate()}`,
+      weatherSummary: `${result.today.minTemp}℃ - ${result.today.maxTemp}℃`
+    });
+  },
+  SetForecast(result) {
+    let resultForeCast = result.forecast
+    let forecast = []
+    let nowHour = new Date().getHours()
+    for (let i = 0; i < 8; i++) {
+      forecast.push({
+        time: (i * 3 + nowHour) % 24 + "时",
+        iconPath: '/images/' + resultForeCast[i].weather + '-icon.png',
+        temp: resultForeCast[i].temp + "°"
+      })
+    }
+    forecast[0].time = '现在'
+    this.setData({
+      forecast: forecast
+    })
+
+  },
+  onTapWeatherSummary()
+  {
+    wx.navigateTo({
+      url: '/pages/list/list',
+    })
   }
 })
